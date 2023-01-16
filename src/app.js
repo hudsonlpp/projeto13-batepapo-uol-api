@@ -35,18 +35,16 @@ app.post("/messages", async (req, res) => {
         const erros = validateMessage.error.details.map((err) => err.message)
         return res.status(422).send(erros)
     }
-    try {
-        const receiver = await db.collection("participants").findOne({ name: user })
-        if (!receiver) return res.status(422)
-        const messages = db.collection("messages").insertOne({
-            from: user,
-            to,
-            text,
-            type,
-            time: dayjs().format("HH:mm:ss")
+    const receiver = await db.collection("participants").findOne({ name: user })
+    if (!receiver) return res.status(422)
+    const messages = db.collection("messages").insertOne({
+        from: user,
+        to,
+        text,
+        type,
+        time: dayjs().format("HH:mm:ss")
         })
         res.status(201).send(messages)
-    } catch (err) {}
 })
 
 app.get("/messages", async (req, res) => {
@@ -65,7 +63,7 @@ app.get("/messages", async (req, res) => {
             { type: "status" }
         ]
     };
-    try {
+
         const messages = await db.collection("messages").find(filter).toArray()
         if (limit < 0 || limit === 0 || isNaN(limit)) {
             return res.sendStatus(422)
@@ -73,8 +71,6 @@ app.get("/messages", async (req, res) => {
             return res.send(messages.slice(-limit).reverse())
         } else {
             res.send(messages.reverse())
-        }
-    } catch (err) {}
 })
 
 app.post("/participants", async (req, res) => {
@@ -87,7 +83,6 @@ app.post("/participants", async (req, res) => {
         const erros = nameValidation.error.details.map((err) => err.message)
         return res.status(422).send(erros)
     }
-    try {
         const findUser = await db.collection("participants").findOne({ name })
         if (findUser) return res.sendStatus(409)
         await db.collection("participants").insertOne({ name, lastStatus: Date.now() })
@@ -99,26 +94,22 @@ app.post("/participants", async (req, res) => {
             time: dayjs().format("HH:mm:ss")
         })  
         res.sendStatus(201)
-    } catch (err) {
         res.status(500).send("Server error")
-    }
 })
 
 app.get("/participants", async (req, res) => {
-    try {
+    {
         const onlineUsers = await db.collection("participants").find().toArray()
         res.send(onlineUsers)
-    } catch (err) {}
+    }
 })
 
 app.post("/status", async (req, res) => {
     const { user } = req.headers
-    try {
-        const Online = await db.collection("participants").findOne({ name: user })
-        if (!Online) return res.sendStatus(404)
-        await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
-        res.sendStatus(200)
-    } catch (err) {}
+    const Online = await db.collection("participants").findOne({ name: user })
+    if (!Online) return res.sendStatus(404)
+    await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
+    res.sendStatus(200)
 
     // Remoção de Usuários Inativos e Manutenção de Ativos
 
