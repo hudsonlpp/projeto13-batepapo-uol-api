@@ -1,13 +1,11 @@
 import express from "express";
 import { MongoClient, ObjectId } from "mongodb";
-import dotenv from "dotenv";
 import cors from "cors";
 import joi from "joi";
 import bcrypt from "bcrypt";
 import { v4 as uuidV4 } from 'uuid';
 import dotenv from "dotenv"
 import dayjs from "dayjs"
-import { MongoClient, ObjectId } from "mongodb"
 
 const app = express();
 dotenv.config();
