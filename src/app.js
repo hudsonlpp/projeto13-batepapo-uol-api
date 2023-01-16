@@ -35,14 +35,15 @@ app.post("/messages", async (req, res) => {
         const erros = validateMessage.error.details.map((err) => err.message)
         return res.status(422).send(erros)
     }
-    const receiver = await db.collection("participants").findOne({ name: user })
-    if (!receiver) return res.status(422)
-    const messages = db.collection("messages").insertOne({
-        from: user,
-        to,
-        text,
-        type,
-        time: dayjs().format("HH:mm:ss")
+
+        const receiver = await db.collection("participants").findOne({ name: user })
+        if (!receiver) return res.status(422)
+        const messages = db.collection("messages").insertOne({
+            from: user,
+            to,
+            text,
+            type,
+            time: dayjs().format("HH:mm:ss")
         })
         res.status(201).send(messages)
 })
@@ -63,14 +64,14 @@ app.get("/messages", async (req, res) => {
             { type: "status" }
         ]
     };
-
-        const messages = await db.collection("messages").find(filter).toArray()
-        if (limit < 0 || limit === 0 || isNaN(limit)) {
-            return res.sendStatus(422)
-        } else if (limit > 0) {
-            return res.send(messages.slice(-limit).reverse())
-        } else {
-            res.send(messages.reverse())
+    const messages = await db.collection("messages").find(filter).toArray()
+    if (limit < 0 || limit === 0 || isNaN(limit)) {
+        return res.sendStatus(422)
+    } else if (limit > 0) {
+        return res.send(messages.slice(-limit).reverse())
+    } else {
+        res.send(messages.reverse())
+    }
 })
 
 app.post("/participants", async (req, res) => {
@@ -83,8 +84,11 @@ app.post("/participants", async (req, res) => {
         const erros = nameValidation.error.details.map((err) => err.message)
         return res.status(422).send(erros)
     }
+    
         const findUser = await db.collection("participants").findOne({ name })
-        if (findUser) return res.sendStatus(409)
+        if (findUser) {
+            return res.sendStatus(409)
+        }
         await db.collection("participants").insertOne({ name, lastStatus: Date.now() })
         await db.collection("messages").insertOne({
             from: name,
@@ -94,7 +98,6 @@ app.post("/participants", async (req, res) => {
             time: dayjs().format("HH:mm:ss")
         })  
         res.sendStatus(201)
-        res.status(500).send("Server error")
 })
 
 app.get("/participants", async (req, res) => {
@@ -107,9 +110,11 @@ app.get("/participants", async (req, res) => {
 app.post("/status", async (req, res) => {
     const { user } = req.headers
     const Online = await db.collection("participants").findOne({ name: user })
-    if (!Online) return res.sendStatus(404)
-    await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
-    res.sendStatus(200)
+        if (!Online) {
+            return res.sendStatus(404)
+        }
+        await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
+        res.sendStatus(200)
 
     // Remoção de Usuários Inativos e Manutenção de Ativos
 
@@ -118,30 +123,30 @@ app.post("/status", async (req, res) => {
         messages: "messages"
       };
     
-      const getNowTime = () => {
+    const clock = () => {
         const hour = (dayjs().hour()).toLocaleString("pt-br", { minimumIntegerDigits: 2 });
         const minute = (dayjs().minute()).toLocaleString("pt-br", { minimumIntegerDigits: 2 });
         const second = (dayjs().second()).toLocaleString("pt-br", { minimumIntegerDigits: 2 });
         return `${hour}:${minute}:${second}`;
       };
 
-    const generateLeaveServerMessage = (from) => {
-    const leaveServerMessage = {
+    const generateDeleteMessage = (from) => {
+    const deleteMessage = {
       from,
       text: "sai da sala...",
         to: "todos",
-        time: getNowTime(),
+        time: clock(),
         type: "status"
         };
       
-        return leaveServerMessage;
+        return deleteMessage;
       };
 
     setInterval(async () => {
         const statusLimit = Date.now() - (10000);
-        const deleteParticipants = await db.collection(collections.participants).find({ lastStatus: { $lt: statusLimit } }).toArray();
-        deleteParticipants.forEach(async participant => {
-          await db.collection(collections.messages).insertOne(generateLeaveServerMessage(participant.name));
+        const deleteParticipant = await db.collection(collections.participants).find({ lastStatus: { $lt: statusLimit } }).toArray();
+        deleteParticipant.forEach(async participant => {
+          await db.collection(collections.messages).insertOne(generateDeleteMessage(participant.name));
         });
         await db.collection(collections.participants).deleteMany({ lastStatus: { $lt: statusLimit } });
       
