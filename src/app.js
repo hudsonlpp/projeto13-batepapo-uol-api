@@ -12,7 +12,7 @@ dotenv.config();
 app.use(express.json());
 app.use(cors());
 dotenv.config();
-const mongoClient = new MongoClient(process.env.MONGO_URI);
+const mongoClient = new MongoClient(process.env.DATABASE_URL);
 let db= mongoClient.db();
 
 try {
