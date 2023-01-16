@@ -17,7 +17,7 @@ try {
 await mongoClient.connect();
 db = mongoClient.db()
 } catch (err) {console.log("Data bank error", err.message);}
-let hour = dayjs().format("HH:mm:ss")
+
 const port = 5000;
 app.listen(port,()=> console.log(`Server running in port: ${port}`));
 
@@ -43,10 +43,10 @@ app.post("/messages", async (req, res) => {
             to,
             text,
             type,
-            time: hour
+            time: dayjs().format("HH:mm:ss")
         })
         res.status(201).send(messages)
-    } catch (err) { console.log(err) }
+    } catch (err) {}
 })
 
 app.get("/messages", async (req, res) => {
@@ -74,7 +74,7 @@ app.get("/messages", async (req, res) => {
         } else {
             res.send(messages.reverse())
         }
-    } catch (err) { console.log(err) }
+    } catch (err) {}
 })
 
 app.post("/participants", async (req, res) => {
@@ -96,12 +96,11 @@ app.post("/participants", async (req, res) => {
             to: "Todos",
             text: "entra na sala...",
             type: "status",
-            time: hour
+            time: dayjs().format("HH:mm:ss")
         })  
         res.sendStatus(201)
     } catch (err) {
         res.status(500).send("Server error")
-        console.log(err)
     }
 })
 
@@ -109,7 +108,7 @@ app.get("/participants", async (req, res) => {
     try {
         const onlineUsers = await db.collection("participants").find().toArray()
         res.send(onlineUsers)
-    } catch (err) { console.log(err) }
+    } catch (err) {}
 })
 
 app.post("/status", async (req, res) => {
@@ -119,26 +118,41 @@ app.post("/status", async (req, res) => {
         if (!Online) return res.sendStatus(404)
         await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
         res.sendStatus(200)
-    } catch (err) { console.log(err) }
+    } catch (err) {}
 
+    // Remoção de Usuários Inativos e Manutenção de Ativos
+
+    const collections = {
+        participants: "participants",
+        messages: "messages"
+      };
+    
+      const getNowTime = () => {
+        const hour = (dayjs().hour()).toLocaleString("pt-br", { minimumIntegerDigits: 2 });
+        const minute = (dayjs().minute()).toLocaleString("pt-br", { minimumIntegerDigits: 2 });
+        const second = (dayjs().second()).toLocaleString("pt-br", { minimumIntegerDigits: 2 });
+        return `${hour}:${minute}:${second}`;
+      };
+
+    const generateLeaveServerMessage = (from) => {
+    const leaveServerMessage = {
+      from,
+      text: "sai da sala...",
+        to: "todos",
+        time: getNowTime(),
+        type: "status"
+        };
+      
+        return leaveServerMessage;
+      };
 
     setInterval(async () => {
-        try {
-            const timer = Date.now() - 10000
-            const inactiveUser = await db.collection("participants").find({ lastStatus: { $lt: timer } }).toArray()
-            inactiveUser.map(async (user) => {
-                const atualizaMsg = {
-                    from: user.name,
-                    to: 'Todos',
-                    text: 'sai da sala...',
-                    type: 'status',
-                    time: hour
-                }
-                await db.collection("messages").insertOne(atualizaMsg)
-            },
-                await db.collection("participants").deleteMany({ lastStatus: { $lt: timer } })
-
-            )
-        } catch (error) { console.log(error) }
-    }, 15000)       
+        const statusLimit = Date.now() - (10000);
+        const deleteParticipants = await db.collection(collections.participants).find({ lastStatus: { $lt: statusLimit } }).toArray();
+        deleteParticipants.forEach(async participant => {
+          await db.collection(collections.messages).insertOne(generateLeaveServerMessage(participant.name));
+        });
+        await db.collection(collections.participants).deleteMany({ lastStatus: { $lt: statusLimit } });
+      
+      }, 15000);    
 })
