@@ -1,9 +1,7 @@
 import express from "express";
-import { MongoClient, ObjectId } from "mongodb";
+import { MongoClient } from "mongodb";
 import cors from "cors";
 import joi from "joi";
-import bcrypt from "bcrypt";
-import { v4 as uuidV4 } from 'uuid';
 import dotenv from "dotenv"
 import dayjs from "dayjs"
 
@@ -13,10 +11,11 @@ app.use(express.json());
 app.use(cors());
 dotenv.config();
 const mongoClient = new MongoClient(process.env.DATABASE_URL);
-let db= mongoClient.db();
+let db;
 
 try {
 await mongoClient.connect();
+db = mongoClient.db()
 } catch (err) {console.log("Data bank error", err.message);}
 let hour = dayjs().format("HH:mm:ss")
 const port = 5000;
@@ -143,6 +142,3 @@ app.post("/status", async (req, res) => {
         } catch (error) { console.log(error) }
     }, 15000)       
 })
-
-db = mongoClient.db("DIRETÓRIO");
-const Collection = db.collection("COLLECTION");
