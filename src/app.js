@@ -24,7 +24,7 @@ app.listen(port,()=> console.log(`Server running in port: ${port}`));
 app.post("/messages", async (req, res) => {
     const { user } = req.headers
     const { to, text, type } = req.body
-    if (!newUser || typeof newUser !== "string") return res.sendStatus(422);
+    if (!user || typeof user !== "string") return res.sendStatus(422);
     const SchemaMessage = joi.object({
         to: joi.string().required(),
         text: joi.string().required(),
