@@ -115,6 +115,8 @@ app.post("/status", async (req, res) => {
         }
         await db.collection("participants").updateOne({ name: user }, { $set: { lastStatus: Date.now() } })
         res.sendStatus(200)
+    
+})
 
     // Remoção de Usuários Inativos e Manutenção de Ativos
 
@@ -151,4 +153,3 @@ app.post("/status", async (req, res) => {
         await db.collection(collections.participants).deleteMany({ lastStatus: { $lt: statusLimit } });
       
       }, 15000);    
-})
